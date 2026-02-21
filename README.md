@@ -1,112 +1,71 @@
-# HackSLU 2026 - Crossword App
+# AI Crossword Generator (HackSLU 2026)
 
-A React-based crossword puzzle application built with Vite and Tailwind CSS.
+A high-performance, beautiful, and crash-resistant crossword construction tool. This app uses **Google Gemini 2.5 Flash** to extract concepts from presentations, PDFs, and images, automatically generating a playable crossword puzzle with an adaptive, professional UI.
 
-## Prerequisites
+## ✨ Features
 
-Before getting started, ensure you have the following installed:
+- **Multimodal AI Extraction**: Upload PPTX, PDF, or JPG/PNG files. Gemini AI extracts key terms and generates contextual clues automatically.
+- **Stable Layout Engine**: Uses a robust local generator to compute grid coordinates without the "White Screen of Death" crashes common in complex layout logic.
+- **Professional UI**:
+  - **Uniform Boundaries**: Smart neighbor-aware border logic for perfectly consistent 4px grid lines.
+  - **Adaptive Layout**: Dynamically shifts clues below the grid for wide puzzles to maintain legibility.
+  - **Visual Feedback**: Real-time "Check Answers" validation (green for correct, red for incorrect).
+  - **Transparency**: Optimized grid rendering with transparent non-letter cells for a clean, glassmorphic aesthetic.
+- **Teacher Tools**: Toggleable "Answer Key" and "Reveal Grid" modes for quick review.
 
-- **Node.js** (v16 or higher) - [Download here](https://nodejs.org/)
-- **npm** (comes with Node.js)
-- **Git**
+## 🛠️ Tech Stack
 
-## Quick Start
+- **Framework**: React 18 + Vite (TypeScript)
+- **AI**: Google Generative AI (Gemini 2.5 Flash)
+- **Styling**: Tailwind CSS (PostCSS)
+- **Parsing**: JSZip (for PPTX structure extraction)
 
-### 1. Clone the repository
+## 🚀 Quick Start
 
+### 1. Requirements
+- **Node.js**: v18 or newer
+- **API Key**: A Google Gemini API Key (available at [Google AI Studio](https://aistudio.google.com/))
+
+### 2. Installation
 ```bash
+# Clone the repository
 git clone <repository-url>
 cd hackslu
-```
 
-### 2. Install dependencies
-
-```bash
+# Install dependencies
 npm install
 ```
 
-This installs all necessary packages including React, Tailwind CSS, UI components, and other dependencies.
+### 3. Environment Setup
+The app requires an API key configured via environment variables.
 
-### 3. Start the development server
+1. Copy `.env.example` to `.env`:
+   ```bash
+   cp .env.example .env
+   ```
+2. Edit `.env` and add your key:
+   ```env
+   VITE_GEMINI_API_KEY=your_gemini_api_key_here
+   ```
 
+### 4. Run Development Server
 ```bash
 npm run dev
 ```
+Open `http://localhost:5173` to start building puzzles.
 
-The app will be available at `http://localhost:5173/`. The page will automatically reload when you make changes.
+## 📁 Project Structure
 
-### 4. Build for production
+- `src/lib/gemini.ts`: AI inference and multimodal file parsing logic.
+- `src/lib/generator.ts`: Mathematical crossword layout engine and grid cropping.
+- `src/components/Uploader.tsx`: Drag-and-drop file processing interface.
+- `src/components/CrosswordBoard.tsx`: The main interactive gameplay grid.
 
+## 📦 Production Build
 ```bash
 npm run build
 ```
-
-This creates an optimized production build in the `dist/` folder.
-
-## Project Structure
-
-```
-hackslu/
-├── src/
-│   ├── app/
-│   │   ├── App.tsx              # Main app component
-│   │   └── components/          # Reusable React components
-│   │       ├── CrosswordGrid.tsx
-│   │       ├── CluesList.tsx
-│   │       └── CustomCrosswordBuilder.tsx
-│   ├── utils/
-│   │   └── crosswordGenerator.ts # Crossword logic
-│   └── styles/                  # CSS and Tailwind styles
-├── backend/
-│   └── app.py                   # Backend API (Python/Flask)
-├── index.html                   # Entry HTML file
-├── package.json                 # Dependencies and scripts
-├── vite.config.ts              # Vite configuration
-└── postcss.config.mjs           # PostCSS configuration
-```
-
-## Tech Stack
-
-- **Frontend:** React 18, TypeScript, Vite
-- **Styling:** Tailwind CSS, Radix UI components
-- **Build Tool:** Vite
-- **Backend:** Python (Flask)
-
-## Development Tips
-
-- Use `npm run dev` for active development with hot-reload
-- Components are located in `src/app/components/`
-- Styles are in `src/styles/`
-- Tailwind CSS is configured and ready to use
-- UI components from Radix UI are pre-installed
-
-## Troubleshooting
-
-**Port already in use?**
-```bash
-npm run dev -- --port 3000
-```
-
-**Dependencies not installed?**
-```bash
-npm install
-```
-
-**Vite not found?**
-Make sure you're in the `hackslu` directory and dependencies are installed.
-
-## Backend Setup
-
-The backend is a Python Flask app located in `backend/app.py`. To set up:
-
-```bash
-# Install Python dependencies
-pip install -r requirements.txt  # (if requirements.txt exists)
-
-# Run the Flask server
-python backend/app.py
-```
+The optimized production bundle will be generated in the `dist/` directory.
 
 ---
-
-Happy coding! 🚀
+Built for HackSLU 2026 🚀
