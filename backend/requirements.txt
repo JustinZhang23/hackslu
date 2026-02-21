@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+python-dotenv
+python-pptx
+requests
+pydantic
+google-cloud-aiplatform
