@@ -1,4 +1,4 @@
-# AI Crossword Generator (HackSLU 2026)
+# Crossword Generator (HackSLU 2026)
 
 A high-performance, beautiful, and crash-resistant crossword construction tool. This app uses **Google Gemini 2.5 Flash** to extract concepts from presentations, PDFs, and images, automatically generating a playable crossword puzzle with an adaptive, professional UI.
 
