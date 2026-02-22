@@ -50,7 +50,7 @@ The app requires an API key configured via environment variables.
 
 ### 4. Run Development Server
 ```bash
-npm run dev
+npm run start:all
 ```
 Open `http://localhost:5173` to start building puzzles.
 

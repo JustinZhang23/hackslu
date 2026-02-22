@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { PuzzleLayout, PlacedWord } from '../lib/generator';
+import React, { useState, useEffect, useRef } from 'react';
+import { PuzzleLayout, PlacedWord } from '../lib/types';
 
 interface CrosswordBoardProps {
     puzzle: PuzzleLayout;
@@ -9,9 +9,10 @@ export function CrosswordBoard({ puzzle }: CrosswordBoardProps) {
     const [userGrid, setUserGrid] = useState<string[][]>([]);
     const [selectedCell, setSelectedCell] = useState<{ r: number; c: number } | null>(null);
     const [direction, setDirection] = useState<'across' | 'down'>('across');
-    const [isChecked, setIsChecked] = useState(false);
+    const [checkedCells, setCheckedCells] = useState<Set<string>>(new Set());
     const [showAnswerKey, setShowAnswerKey] = useState(false);
     const [isRevealed, setIsRevealed] = useState(false);
+    const gridRef = useRef<HTMLDivElement>(null);
 
     // Initialize empty user grid matching the puzzle size
     useEffect(() => {
@@ -19,7 +20,7 @@ export function CrosswordBoard({ puzzle }: CrosswordBoardProps) {
             setUserGrid(puzzle.grid.map(row => row.map(cell => cell === '#' ? '#' : '')));
             setSelectedCell(null);
             setDirection('across');
-            setIsChecked(false);
+            setCheckedCells(new Set());
             setShowAnswerKey(false);
             setIsRevealed(false);
         }
@@ -30,11 +31,21 @@ export function CrosswordBoard({ puzzle }: CrosswordBoardProps) {
     const handleCellClick = (r: number, c: number) => {
         if (puzzle.grid[r][c] === '#') return;
 
-        // Toggle direction if clicking the same cell
+        // Determine if cell is part of an across or down word
+        const isAcross = puzzle.acrossClues.some(w => w.row === r && c >= w.col && c < w.col + w.answer.length);
+        const isDown = puzzle.downClues.some(w => w.col === c && r >= w.row && r < w.row + w.answer.length);
+
         if (selectedCell?.r === r && selectedCell?.c === c) {
-            setDirection(direction === 'across' ? 'down' : 'across');
+            // Toggle direction if clicking the same cell, but only if both directions are valid
+            if (isAcross && isDown) {
+                setDirection(direction === 'across' ? 'down' : 'across');
+            }
         } else {
             setSelectedCell({ r, c });
+            // Auto-set direction if cell only belongs to one word
+            if (isAcross && !isDown) setDirection('across');
+            else if (isDown && !isAcross) setDirection('down');
+            // Otherwise, keep current direction
         }
     };
 
@@ -42,7 +53,10 @@ export function CrosswordBoard({ puzzle }: CrosswordBoardProps) {
         const key = e.key;
 
         if (key.match(/^[a-zA-Z]$/)) {
-            setIsChecked(false); // Clear check state when typing
+            const newChecked = new Set(checkedCells);
+            newChecked.delete(`${r}-${c}`);
+            setCheckedCells(newChecked);
+
             const newGrid = [...userGrid];
             newGrid[r] = [...newGrid[r]];
             newGrid[r][c] = key.toUpperCase();
@@ -55,7 +69,10 @@ export function CrosswordBoard({ puzzle }: CrosswordBoardProps) {
                 setSelectedCell({ r: r + 1, c });
             }
         } else if (key === 'Backspace') {
-            setIsChecked(false); // Clear check state when deleting
+            const newChecked = new Set(checkedCells);
+            newChecked.delete(`${r}-${c}`);
+            setCheckedCells(newChecked);
+
             const newGrid = [...userGrid];
             newGrid[r] = [...newGrid[r]];
             newGrid[r][c] = '';
@@ -89,12 +106,20 @@ export function CrosswordBoard({ puzzle }: CrosswordBoardProps) {
     };
 
     const handleCheck = () => {
-        setIsChecked(true);
+        const allCells = new Set<string>();
+        puzzle.grid.forEach((row, ri) => {
+            row.forEach((cell, ci) => {
+                if (cell !== '#' && userGrid[ri][ci]) {
+                    allCells.add(`${ri}-${ci}`);
+                }
+            });
+        });
+        setCheckedCells(allCells);
     };
 
     const handleReset = () => {
         if (confirm("Clear all your answers?")) {
-            setIsChecked(false);
+            setCheckedCells(new Set());
             setUserGrid(puzzle.grid.map(row => row.map(cell => cell === '#' ? '#' : '')));
         }
     };
@@ -103,112 +128,124 @@ export function CrosswordBoard({ puzzle }: CrosswordBoardProps) {
         if (isRevealed) {
             setIsRevealed(false);
         } else if (confirm("Reveal the entire puzzle? Warning: This will show the entire puzzle")) {
-            setIsChecked(true);
             setIsRevealed(true);
         }
+    };
+
+    const handleExport = () => {
+        window.print();
     };
 
     const isWideGrid = puzzle.grid[0].length >= 15;
 
     return (
-        <div className={`w-full flex ${isWideGrid ? 'flex-col' : 'flex-col lg:flex-row'} gap-8 mt-12 animate-in fade-in slide-in-from-bottom-5 duration-700`}>
+        <div className="w-full mt-12 space-y-8 animate-in fade-in slide-in-from-bottom-5 duration-700">
+            {/* Main Board and Clues Container */}
+            <div className={`w-full flex ${isWideGrid ? 'flex-col' : 'flex-col lg:flex-row'} gap-8`}>
+                {/* Board Column */}
+                <div className="flex-1 bg-white/70 backdrop-blur-xl border border-white p-8 rounded-3xl shadow-xl flex flex-col items-center overflow-x-auto">
 
-            {/* Board Column */}
-            <div className="flex-1 bg-white/70 backdrop-blur-xl border border-white p-8 rounded-3xl shadow-xl flex flex-col items-center overflow-x-auto">
+                    {/* The Grid */}
+                    <div
+                        ref={gridRef}
+                        className="inline-grid shadow-2xl rounded-sm bg-transparent gap-0 p-[2px] bg-white"
+                        style={{ gridTemplateColumns: `repeat(${puzzle.grid[0].length}, max-content)` }}
+                    >
+                        {puzzle.grid.map((row, r) =>
+                            row.map((cell, c) => {
+                                const isBlack = cell === '#';
+                                const isSelected = selectedCell?.r === r && selectedCell?.c === c;
+                                const val = isRevealed && !isBlack ? puzzle.grid[r][c] : (userGrid[r]?.[c] || '');
+                                const num = getNumber(r, c);
 
-                {/* The Grid */}
-                <div
-                    className="inline-grid shadow-2xl rounded-sm bg-transparent gap-0"
-                    style={{ gridTemplateColumns: `repeat(${puzzle.grid[0].length}, max-content)` }}
-                >
-                    {puzzle.grid.map((row, r) =>
-                        row.map((cell, c) => {
-                            const isBlack = cell === '#';
-                            const isSelected = selectedCell?.r === r && selectedCell?.c === c;
-                            const val = isRevealed && !isBlack ? puzzle.grid[r][c] : (userGrid[r]?.[c] || '');
-                            const num = getNumber(r, c);
+                                if (isBlack) {
+                                    return <div key={`${r}-${c}`} className="w-10 h-10 sm:w-12 sm:h-12 bg-transparent" />;
+                                }
 
-                            if (isBlack) {
-                                return <div key={`${r}-${c}`} className="w-10 h-10 sm:w-12 sm:h-12 bg-transparent" />;
-                            }
+                                // Neighbor logic for uniform borders
+                                const hasTop = r > 0 && puzzle.grid[r - 1][c] !== '#';
+                                const hasBottom = r < puzzle.grid.length - 1 && puzzle.grid[r + 1][c] !== '#';
+                                const hasLeft = c > 0 && puzzle.grid[r][c - 1] !== '#';
+                                const hasRight = c < puzzle.grid[0].length - 1 && puzzle.grid[r][c + 1] !== '#';
 
-                            // Neighbor logic for uniform borders
-                            const hasTop = r > 0 && puzzle.grid[r - 1][c] !== '#';
-                            const hasBottom = r < puzzle.grid.length - 1 && puzzle.grid[r + 1][c] !== '#';
-                            const hasLeft = c > 0 && puzzle.grid[r][c - 1] !== '#';
-                            const hasRight = c < puzzle.grid[0].length - 1 && puzzle.grid[r][c + 1] !== '#';
-
-                            const borderClasses = `
+                                const borderClasses = `
                                 ${hasTop ? 'border-t-2' : 'border-t-4'}
                                 ${hasBottom ? 'border-b-2' : 'border-b-4'}
                                 ${hasLeft ? 'border-l-2' : 'border-l-4'}
                                 ${hasRight ? 'border-r-2' : 'border-r-4'}
                             `.trim();
 
-                            let cellTextColor = isSelected ? 'text-indigo-900' : 'text-indigo-700';
-                            let bgColor = isSelected ? 'bg-yellow-200' : 'bg-white cursor-pointer hover:bg-indigo-50';
+                                let cellTextColor = isSelected ? 'text-indigo-900' : 'text-indigo-700';
+                                let bgColor = isSelected ? 'bg-yellow-200' : 'bg-white cursor-pointer hover:bg-indigo-50';
 
-                            if (isChecked && val) {
-                                if (val === puzzle.grid[r][c]) {
-                                    cellTextColor = 'text-green-600';
-                                    bgColor = isSelected ? 'bg-green-200' : 'bg-green-50';
-                                } else {
-                                    cellTextColor = 'text-red-500';
-                                    bgColor = isSelected ? 'bg-red-200' : 'bg-red-50';
+                                const isCellChecked = checkedCells.has(`${r}-${c}`);
+
+                                if (isCellChecked && val && !isRevealed) {
+                                    if (val === puzzle.grid[r][c]) {
+                                        cellTextColor = 'text-green-600';
+                                        bgColor = isSelected ? 'bg-green-200' : 'bg-green-50';
+                                    } else {
+                                        cellTextColor = 'text-red-500';
+                                        bgColor = isSelected ? 'bg-red-200' : 'bg-red-50';
+                                    }
                                 }
-                            }
 
-                            return (
-                                <div
-                                    key={`${r}-${c}`}
-                                    onClick={() => handleCellClick(r, c)}
-                                    className={`relative w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center text-xl font-bold uppercase transition-colors select-none ${bgColor} ${borderClasses} border-slate-900 box-border`}
-                                >
-                                    <div className="absolute inset-x-0 inset-y-0 flex items-center justify-center">
-                                        {num && (
-                                            <span className="absolute top-0.5 left-1 text-[11px] text-gray-800 font-bold z-10 select-none">
-                                                {num}
-                                            </span>
-                                        )}
-                                        <input
-                                            type="text"
-                                            value={val}
-                                            maxLength={1}
-                                            readOnly
-                                            onKeyDown={(e) => handleKeyDown(e, r, c)}
-                                            className={`w-full h-full bg-transparent text-center flex items-center justify-center outline-none cursor-pointer m-0 p-0 pt-2 sm:pt-3 text-2xl leading-none ${cellTextColor}`}
-                                            ref={el => {
-                                                if (isSelected && el) el.focus();
-                                            }}
-                                        />
+                                return (
+                                    <div
+                                        key={`${r}-${c}`}
+                                        onClick={() => handleCellClick(r, c)}
+                                        className={`relative w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center text-xl font-bold uppercase transition-colors select-none ${bgColor} ${borderClasses} border-slate-900 box-border`}
+                                    >
+                                        <div className="absolute inset-x-0 inset-y-0 flex items-center justify-center">
+                                            {num && (
+                                                <span className="absolute top-0.5 left-1 text-[11px] text-gray-800 font-bold z-10 select-none">
+                                                    {num}
+                                                </span>
+                                            )}
+                                            <input
+                                                type="text"
+                                                value={val}
+                                                maxLength={1}
+                                                readOnly
+                                                onKeyDown={(e) => handleKeyDown(e, r, c)}
+                                                className={`w-full h-full bg-transparent text-center flex items-center justify-center outline-none cursor-pointer m-0 p-0 pt-2 sm:pt-3 text-2xl leading-none ${cellTextColor}`}
+                                                ref={el => {
+                                                    if (isSelected && el) el.focus();
+                                                }}
+                                            />
+                                        </div>
                                     </div>
-                                </div>
-                            );
-                        })
-                    )}
+                                );
+                            })
+                        )}
+                    </div>
+
+                    <div className="flex gap-4 mt-8 flex-wrap justify-center font-sans">
+                        <button onClick={handleCheck} className="px-6 py-2 bg-blue-100 text-blue-700 font-semibold rounded-lg hover:bg-blue-200 transition-colors">Check Answers</button>
+                        <button onClick={handleReset} className="px-6 py-2 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 transition-colors">Reset</button>
+                        <button onClick={handleReveal} className="px-6 py-2 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors">
+                            {isRevealed ? 'Hide Answers' : 'Reveal Grid'}
+                        </button>
+                        <button onClick={() => setShowAnswerKey(!showAnswerKey)} className="px-6 py-2 bg-purple-100 text-purple-700 font-semibold rounded-lg hover:bg-purple-200 transition-colors">
+                            {showAnswerKey ? 'Hide Answer Key' : 'Show Answer Key'}
+                        </button>
+                        <button onClick={handleExport} className="px-6 py-2 bg-green-100 text-green-700 font-semibold rounded-lg hover:bg-green-200 transition-colors hidden-print">
+                            Print
+                        </button>
+                    </div>
                 </div>
 
-                <div className="flex gap-4 mt-8 flex-wrap justify-center font-sans">
-                    <button onClick={handleCheck} className="px-6 py-2 bg-blue-100 text-blue-700 font-semibold rounded-lg hover:bg-blue-200 transition-colors">Check Answers</button>
-                    <button onClick={handleReset} className="px-6 py-2 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 transition-colors">Reset</button>
-                    <button onClick={handleReveal} className="px-6 py-2 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors">
-                        {isRevealed ? 'Hide Answers' : 'Reveal Grid'}
-                    </button>
-                    <button onClick={() => setShowAnswerKey(!showAnswerKey)} className="px-6 py-2 bg-purple-100 text-purple-700 font-semibold rounded-lg hover:bg-purple-200 transition-colors">
-                        {showAnswerKey ? 'Hide Answer Key' : 'Show Answer Key'}
-                    </button>
+                {/* Clues Column */}
+                <div className={`w-full ${isWideGrid ? 'flex flex-col md:flex-row' : 'lg:w-96 flex flex-col'} gap-6`}>
+                    <ClueBox title="Across" clues={puzzle.acrossClues} />
+                    <ClueBox title="Down" clues={puzzle.downClues} />
                 </div>
-            </div>
 
-            {/* Clues Column */}
-            <div className={`w-full ${isWideGrid ? 'flex flex-col md:flex-row' : 'lg:w-96 flex flex-col'} gap-6`}>
-                <ClueBox title="Across" clues={puzzle.acrossClues} />
-                <ClueBox title="Down" clues={puzzle.downClues} />
-            </div>
+            </div> {/* End Main Board and Clues Container */}
 
             {/* Toggleable Answer Key Section */}
             {showAnswerKey && (
-                <div className="w-full bg-white/80 backdrop-blur-xl border border-purple-200 p-8 rounded-3xl shadow-2xl animate-in fade-in slide-in-from-top-4 duration-500 mt-4">
+                <div className="w-full bg-white/80 backdrop-blur-xl border border-purple-200 p-8 rounded-3xl shadow-2xl animate-in fade-in slide-in-from-top-4 duration-500">
                     <h2 className="text-2xl font-bold text-purple-800 mb-6 flex items-center gap-2">
                         <span className="p-2 bg-purple-100 rounded-lg text-purple-600">🔑</span>
                         Answer Key
@@ -251,7 +288,6 @@ export function CrosswordBoard({ puzzle }: CrosswordBoardProps) {
                     </div>
                 </div>
             )}
-
         </div>
     );
 }

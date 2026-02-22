@@ -1,23 +1,15 @@
 import React, { useState } from 'react';
 import { Uploader } from './components/Uploader';
 import { CrosswordBoard } from './components/CrosswordBoard';
-import { generateCrossword, ExtractedWord, PuzzleLayout } from './lib/generator';
+import { PuzzleLayout } from './lib/types';
 
 export default function App() {
     const [puzzle, setPuzzle] = useState<PuzzleLayout | null>(null);
-    const [words, setWords] = useState<ExtractedWord[]>([]);
     const [errorStatus, setErrorStatus] = useState<string>('');
 
-    const handleWordsExtracted = (extractedItems: ExtractedWord[]) => {
-        setWords(extractedItems);
+    const handleWordsExtracted = (layoutObj: PuzzleLayout) => {
         setErrorStatus('');
-        try {
-            const layoutObj = generateCrossword(extractedItems);
-            setPuzzle(layoutObj);
-        } catch (err: any) {
-            console.error(err);
-            setErrorStatus(err.message || "Failed to generate a stable crossword layout with those words.");
-        }
+        setPuzzle(layoutObj);
     };
 
     return (
@@ -26,11 +18,11 @@ export default function App() {
 
                 {/* Header */}
                 <header className="text-center space-y-4">
-                    <h1 className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 tracking-tight">
-                        AI Slideshow Crossword
+                    <h1 className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-rose-600 tracking-tight">
+                        CrossStudy Generator
                     </h1>
                     <p className="text-gray-600 text-lg max-w-2xl mx-auto">
-                        A locally-run, super-stable crossword generator. Upload your slideshow to let Gemini extract concepts, and play the puzzle instantly!
+                        Enter a topic or upload a slideshow to extract concepts and generate a crossword puzzle to help reinforce knowledge and improve retention!
                     </p>
                 </header>
 

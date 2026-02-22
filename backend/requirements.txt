@@ -5,3 +5,4 @@ python-pptx
 requests
 pydantic
 google-cloud-aiplatform
+google-generativeai
