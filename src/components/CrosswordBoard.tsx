@@ -12,6 +12,7 @@ export function CrosswordBoard({ puzzle }: CrosswordBoardProps) {
     const [checkedCells, setCheckedCells] = useState<Set<string>>(new Set());
     const [showAnswerKey, setShowAnswerKey] = useState(false);
     const [isRevealed, setIsRevealed] = useState(false);
+    const [isComplete, setIsComplete] = useState(false);
     const gridRef = useRef<HTMLDivElement>(null);
 
     // Initialize empty user grid matching the puzzle size
@@ -23,8 +24,22 @@ export function CrosswordBoard({ puzzle }: CrosswordBoardProps) {
             setCheckedCells(new Set());
             setShowAnswerKey(false);
             setIsRevealed(false);
+            setIsComplete(false);
         }
     }, [puzzle]);
+
+    const checkIfComplete = (grid: string[][]) => {
+        for (let r = 0; r < puzzle.grid.length; r++) {
+            for (let c = 0; c < puzzle.grid[r].length; c++) {
+                if (puzzle.grid[r][c] === '#') continue;
+
+                if (grid[r][c] !== puzzle.grid[r][c]) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    };
 
     if (!puzzle || !puzzle.grid || userGrid.length === 0) return null;
 
@@ -62,6 +77,10 @@ export function CrosswordBoard({ puzzle }: CrosswordBoardProps) {
             newGrid[r][c] = key.toUpperCase();
             setUserGrid(newGrid);
 
+
+            if (checkIfComplete(newGrid)) {
+                setIsComplete(true);
+            }
             // Auto advance
             if (direction === 'across' && c + 1 < puzzle.grid[r].length && puzzle.grid[r][c + 1] !== '#') {
                 setSelectedCell({ r, c: c + 1 });
@@ -121,6 +140,7 @@ export function CrosswordBoard({ puzzle }: CrosswordBoardProps) {
         if (confirm("Clear all your answers?")) {
             setCheckedCells(new Set());
             setUserGrid(puzzle.grid.map(row => row.map(cell => cell === '#' ? '#' : '')));
+            setIsComplete(false);
         }
     };
 
@@ -143,8 +163,7 @@ export function CrosswordBoard({ puzzle }: CrosswordBoardProps) {
             {/* Main Board and Clues Container */}
             <div className={`w-full flex ${isWideGrid ? 'flex-col' : 'flex-col lg:flex-row'} gap-8`}>
                 {/* Board Column */}
-                <div className="flex-1 bg-white/70 backdrop-blur-xl border border-white p-8 rounded-3xl shadow-xl flex flex-col items-center overflow-x-auto">
-
+                <div className="relative flex-1 bg-white/70 backdrop-blur-xl border border-white p-8 rounded-3xl shadow-xl flex flex-col items-center overflow-x-auto">
                     {/* The Grid */}
                     <div
                         ref={gridRef}
@@ -219,7 +238,24 @@ export function CrosswordBoard({ puzzle }: CrosswordBoardProps) {
                             })
                         )}
                     </div>
-
+                    {isComplete && (
+                        <div className="absolute inset-0 bg-white/90 backdrop-blur-md flex items-center justify-center rounded-3xl z-50">
+                            <div className="text-center space-y-4">
+                                <h2 className="text-3xl font-extrabold text-green-600">
+                                    🎉 Congrats!
+                                </h2>
+                                <p className="text-lg text-gray-700">
+                                    You solved the CrossStudy puzzle!
+                                </p>
+                                <button
+                                    onClick={handleReset}
+                                    className="px-6 py-2 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700"
+                                >
+                                    Play Again
+                                </button>
+                            </div>
+                        </div>
+                    )}
                     <div className="flex gap-4 mt-8 flex-wrap justify-center font-sans">
                         <button onClick={handleCheck} className="px-6 py-2 bg-blue-100 text-blue-700 font-semibold rounded-lg hover:bg-blue-200 transition-colors">Check Answers</button>
                         <button onClick={handleReset} className="px-6 py-2 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 transition-colors">Reset</button>
