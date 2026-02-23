@@ -109,6 +109,7 @@ def generate_crossword(words_input: List[Dict]) -> Dict:
             
         placed_words.append({
             "word": word,
+            "answer": word,   # alias used by the frontend PlacedWord type
             "clue": word_obj["clue"],
             "row": start_r,
             "col": start_c,

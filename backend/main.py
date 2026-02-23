@@ -12,8 +12,10 @@ Exports:
 import os
 from dotenv import load_dotenv
 
-# Load the environment variables from the root .env file
-load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
+# Load .env from backend dir first, then fall back to root
+_backend_dir = os.path.dirname(os.path.abspath(__file__))
+load_dotenv(os.path.join(_backend_dir, ".env"))           # backend/.env
+load_dotenv(os.path.join(_backend_dir, "..", ".env"))     # root .env (fallback)
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware

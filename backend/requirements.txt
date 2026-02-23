@@ -4,5 +4,4 @@ python-dotenv
 python-pptx
 requests
 pydantic
-google-cloud-aiplatform
-google-generativeai
+google-genai
